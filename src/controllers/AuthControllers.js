@@ -140,14 +140,14 @@ const deleteProfile = async (req, res) => {
     }
 }
 
-// const getProfile = async (req, res, next) => {
-//     // try{
+const getProfile = async (req, res, next) => {
+    // try{
 
-//     // }
-//     // catch(err){
+    // }
+    // catch(err){
 
-//     // }
+    // }
 
-// }
+}
 
 module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile };
