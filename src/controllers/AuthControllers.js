@@ -4,6 +4,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const redisClient = require('../config/redis');
 const Submission = require("../models/submission");
+
+const isProduction = process.env.PROD === "true";
+
 const register = async (req, res, next) => {
     try {
         validateUser(req.body);
@@ -16,15 +19,20 @@ const register = async (req, res, next) => {
         const reply = {
             firstName: user.firstName,
             emialId: user.emailId,
-            _id:user._id,
-            role:user.role
+            _id: user._id,
+            role: user.role
         }
         const { _id, emailId } = user;
-        const token = jwt.sign({ _id, emailId, role:'user' }, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
-        res.cookie('token', token, { maxAge: 60 * 60 * 1000 });
+        const token = jwt.sign({ _id, emailId, role: 'user' }, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
+        res.cookie('token', token, {
+            httpOnly: true,
+            maxAge: 60 * 60 * 1000,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
         // res.status(201).send("User registered successfully");
         res.status(201).json({
-            user:{...reply},
+            user: { ...reply },
             message: "User registered successfully"
         })
     }
@@ -48,14 +56,19 @@ const login = async (req, res, next) => {
         const reply = {
             firstName: user.firstName,
             emialId: user.emailId,
-            _id:user._id,
-            role:user.role
+            _id: user._id,
+            role: user.role
         }
-        const token = jwt.sign({ _id: user._id, emailId, role:user.role}, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
-        res.cookie('token', token, { maxAge: 60 * 60 * 1000 });
+        const token = jwt.sign({ _id: user._id, emailId, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
+        res.cookie('token', token, {
+            httpOnly: true,
+            maxAge: 60 * 60 * 1000,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
         // res.status(200).send("User logged in successfully");
         res.status(200).json({
-            user:{...reply},
+            user: { ...reply },
             message: "User logged in successfully"
         })
     }
@@ -75,17 +88,22 @@ const logout = async (req, res, next) => {
         await redisClient.expireAt(`token:${token}`, payload.exp);
 
         // expire the cookie
-        res.cookie('token', null, { expires: new Date(Date.now()) })
+        res.cookie('token', '', {
+            expires: new Date(0),
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
         res.status(200).send("Logged out successfully");
     }
     catch (err) {
-        res.status(500).send("Error: "+err.message);
+        res.status(500).send("Error: " + err.message);
     }
 
 }
 
 
-const adminRegister = async (req, res)=>{
+const adminRegister = async (req, res) => {
     try {
         validateUser(req.body);
         //hash the password before saving it into db
@@ -95,8 +113,13 @@ const adminRegister = async (req, res)=>{
         // req.body.role = 'admin';
         const user = await User.create(req.body);
         const { _id, emailId } = user;
-        const token = jwt.sign({ _id, emailId, role:user.role}, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
-        res.cookie('token', token, { maxAge: 60 * 60 * 1000 });
+        const token = jwt.sign({ _id, emailId, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
+        res.cookie('token', token, {
+            httpOnly: true,
+            maxAge: 60 * 60 * 1000,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
         res.status(201).send("User registered successfully");
     }
     catch (err) {
@@ -104,27 +127,27 @@ const adminRegister = async (req, res)=>{
     }
 }
 
-const deleteProfile = async(req, res)=>{
-    try{
+const deleteProfile = async (req, res) => {
+    try {
         const userId = req.result._id;
         await User.findByIdAndDelete(userId);
 
-        await Submission.deleteMany({userId});
+        await Submission.deleteMany({ userId });
         res.status(200).send("Profile Deleted Successfully");
     }
-    catch(err){
+    catch (err) {
         res.status(500).send("Error: " + err.message);
     }
 }
 
-const getProfile = async (req, res, next) => {
-    // try{
+// const getProfile = async (req, res, next) => {
+//     // try{
 
-    // }
-    // catch(err){
+//     // }
+//     // catch(err){
 
-    // }
+//     // }
 
-}
+// }
 
-module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile};
+module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile };
