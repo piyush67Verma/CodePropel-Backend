@@ -13,7 +13,7 @@ const app = express();
 
 //CORS for both local + production frontend
 app.use(cors({
-    origin: ["http://localhost:5173", "https://your-frontend.vercel.app"],
+    origin: ["https://code-propel-frontend.vercel.app/"],
     credentials: true
 }));
 
